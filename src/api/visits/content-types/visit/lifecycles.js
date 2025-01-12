@@ -1,15 +1,6 @@
-const similarityMatrix = require("../../datasets/similarityMatrix.json");
-const similarityKeys = require("../../datasets/similarityKeys.json");
-const travelRegions = require("../../datasets/travelRegionsRaw.json");
-
-const createUserStatistics = async (event) => {
-  const user = await strapi.db.query('plugin::users-permissions.user')
-    .findOne({ where: { email: event.params.data.email } });
-  const statistics = await strapi.db.query('api::user-statistics.user-statistics')
-    .create({ data: { user: user.id, visitedRegions: [], favouriteRegions: [] } });
-  strapi.log.info(`User statistics was connected
-      to ${event.model.attributes.id} with result ${JSON.stringify(statistics)}`);
-}
+const similarityMatrix = require("../../../../../datasets/similarityMatrix.json");
+const similarityKeys = require("../../../../../datasets/similarityKeys.json");
+const travelRegions = require("../../../../../datasets/travelRegionsRaw.json");
 
 const AMOUNT_OF_RECOMMENDATIONS = 20;
 
@@ -112,30 +103,15 @@ const onUpdateCreateVisits = async (event) => {
   console.assert(userStatistics.recommendations.length > 0);
   console.log(`Updated user statistics with regions ${recommendations}`);
 }
-const subscribeTo = ({strapi}) => {
-  strapi.log.info("Adding strapi subscribers");
-  strapi.db.lifecycles.subscribe({
-    models: ['plugin::users-permissions.user'],
-    async afterCreate(event){
-        await createUserStatistics(event);
-    },
-  });
-
-  strapi.db.lifecycles.subscribe({
-    models: ['api::visits.visit'],
-    async afterCreate(event){
-      onUpdateCreateVisits(event);
-    },
-    async afterUpdate(event){
-      onUpdateCreateVisits(event);
-    },
-    async beforeDelete(event) {
-      onUpdateCreateVisits(event);
-    }
-  })
-}
-
 
 module.exports = {
-  subscribeTo,
+  async afterCreate(event){
+    onUpdateCreateVisits(event);
+  },
+  async afterUpdate(event){
+    onUpdateCreateVisits(event);
+  },
+  async beforeDelete(event) {
+    onUpdateCreateVisits(event);
+  }
 }
