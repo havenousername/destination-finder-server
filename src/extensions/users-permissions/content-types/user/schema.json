@@ -25,6 +25,11 @@
       "configurable": false,
       "required": true
     },
+    "graphId": {
+      "type": "string",
+      "unique": true,
+      "configurable": false
+    },
     "provider": {
       "type": "string",
       "configurable": false
