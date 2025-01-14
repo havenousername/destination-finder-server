@@ -1,3 +1,5 @@
+const {createGraphRepresentation, updateGraphRepresentation, } = require("../../../../../config/functions/graphRepresentations");
+const {state} = require("pg/lib/native/query");
 
 const lifecycleState = {
   nextGraphUpdate: true,
@@ -5,45 +7,31 @@ const lifecycleState = {
 };
 
 
-const createGraphRepresentation = async (endpoint, event, state) => {
-  try {
-    const fields = await strapi.documents(event.model.uid)
-      .findOne({
-        documentId: event.result.documentId,
-        populate: ["ParentRegion"],
+const createRegionGraphRepresentation = async (endpoint, event, state) => {
+  const fields = await strapi.documents(event.model.uid)
+    .findOne({
+      documentId: event.result.documentId,
+      populate: ["ParentRegion"],
     });
-    const response = await fetch(endpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        ...event.result,
-        parentRegion: fields.ParentRegion.id,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      }
-    });
-    const resultBody = await response.json();
-    if (resultBody.error) {
-      strapi.log.warn(`Reaches the server ${endpoint} with error ${resultBody.error}`);
-    } else {
-      strapi.log.info(`Created graph representation with IRI ${resultBody.data}`);
-      state.nextGraphUpdate = false;
-      await strapi.documents(event.model.uid)
-        .update({
-          documentId: event.result.documentId,
-          data: {graphId: resultBody.data}
-        });
-    }
-  } catch (e) {
-    strapi.log.warn(`Error happened while accessing ${endpoint} to create new user graph representation with error ${error}`);
-  }
+  event.result = {
+    ...event.result,
+    parentRegion: fields.ParentRegion?.id,
+  };
+  await createGraphRepresentation(
+    endpoint,
+    event,
+    { setNextGraphUpdate: (b) => state.nextGraphUpdate = b },
+  );
 }
 
 module.exports = {
-  afterCreate(event) {
-    createGraphRepresentation(lifecycleState.endpoint, event, lifecycleState);
+  async afterCreate(event) {
+    await createRegionGraphRepresentation(lifecycleState.endpoint, event, lifecycleState);
   },
-  afterUpdate(event) {
-    console.log('afterUpdate', event);
+  async afterUpdate(event) {
+    updateGraphRepresentation(lifecycleState.endpoint, event, {
+      setNextGraphUpdate: (b) => lifecycleState.nextGraphUpdate = b,
+      nextGraphUpdate: lifecycleState.nextGraphUpdate,
+    });
   }
 }
