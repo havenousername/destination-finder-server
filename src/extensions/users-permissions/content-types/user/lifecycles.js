@@ -12,7 +12,7 @@ const createUserStatistics = async (event) => {
 
 const lifecycleState = {
   nextGraphUpdate: true,
-  endpoint: process.env.WEBHOOK_ENDPOINT_URL + "/hook/user",
+  endpoint: process.env.WEBHOOK_ENDPOINT_URL + "/user",
 }
 
 const updateGraphRepresentation = async (endpoint, event, state) => {
@@ -73,5 +73,8 @@ module.exports = {
   },
   afterUpdate(event) {
     updateGraphRepresentation(lifecycleState.endpoint, event, lifecycleState);
+  },
+  afterDelete(event) {
+
   }
 }
